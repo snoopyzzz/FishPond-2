@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.zz.dao.FishDao" >
+    <resultMap id="BaseResultMap" type="com.zz.entity.Fish">
+        <id column="id" property="id" jdbcType="BIGINT"/>
+        <result column="name" property="name" jdbcType="VARCHAR"/>
+        <result column="optimum_temperature" property="optimumTemperature"/>
+        <result column="optimum_oxygen" property="optimumOxygen"/>
+        <result column="optimum_ph" property="optimumPh"/>
+        <result column="remark" property="remark" jdbcType="VARCHAR"/>
+        <result column="update_id" property="updateId" jdbcType="BIGINT"/>
+        <result column="create_id" property="createId" jdbcType="BIGINT"/>
+        <result column="update_time" property="updateTime" jdbcType="TIMESTAMP"/>
+        <result column="create_time" property="createTime" jdbcType="TIMESTAMP"/>
+        <result column="deleted" property="deleted" jdbcType="BOOLEAN"/>
+        <result column="createUsername" property="createUsername" jdbcType="VARCHAR"/>
+        <result column="updateUsername" property="updateUsername" jdbcType="VARCHAR"/>
+    </resultMap>
+    
+    <sql id="showColumn">
+        <trim prefix="" suffix="" suffixOverrides=",">
+            tf.id,
+            tf.name,
+            tf.optimum_temperature,
+            tf.optimum_oxygen,
+            tf.optimum_ph,
+            tf.remark,
+            tf.update_id,
+            tf.create_id,
+            tf.update_time,
+            tf.create_time,
+            tf.deleted,
+            tu.name as createUsername,
+            tu2.name as updateUsername,
+        </trim>
+    </sql>
+
+    <sql id="where">
+        1=1
+        <if test="id != null and id != ''">AND id = #{id,jdbcType=BIGINT}</if>
+        <if test="name != null and name != ''">AND name = #{name,jdbcType=VARCHAR}</if>
+        <if test="remark != null and remark != ''">AND remark = #{remark,jdbcType=VARCHAR}</if>
+        AND tf.deleted = true
+    </sql>
+
+    <!--插入公用模板-->
+    <sql id="saveModel">
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="name != null and name != ''">name,</if>
+            <if test="optimumTemperature != null and optimumTemperature != ''">optimum_temperature,</if>
+            <if test="optimumOxygen != null and optimumOxygen != ''">optimum_oxygen,</if>
+            <if test="optimumPh != null and optimumPh != ''">optimum_ph,</if>
+            <if test="remark != null and remark != ''">remark,</if>
+            <if test="createId != null and createId != ''">create_id,create_time,</if>
+            deleted
+        </trim>
+        <trim prefix=" values (" suffix=")" suffixOverrides=",">
+            <if test="name != null and name != ''">#{name,jdbcType=VARCHAR},</if>
+            <if test="optimumTemperature != null and optimumTemperature != ''">#{optimumTemperature},</if>
+            <if test="optimumOxygen != null and optimumOxygen != ''">#{optimumOxygen},</if>
+            <if test="optimumPh != null and optimumPh != ''">#{optimumPh},</if>
+            <if test="remark != null and remark != ''">#{remark,jdbcType=VARCHAR},</if>
+            <if test="createId != null and createId != ''">#{createId,jdbcType=NUMERIC},now(),</if>
+            true
+        </trim>
+    </sql>
+
+    <!--删除公用模板-->
+    <sql id="delByIdModel">
+        <trim prefix=" set" suffix="  " suffixOverrides=",">
+            update_time=now(),deleted=false,
+        </trim>
+        WHERE
+        id=#{id,jdbcType=NUMERIC}
+    </sql>
+
+    <!--修改公用模板-->
+    <sql id="modifyModel">
+        <trim prefix=" set" suffix="  " suffixOverrides=",">
+            <if test="optimumTemperature != null and optimumTemperature != ''">optimum_temperature = #{optimumTemperature},</if>
+            <if test="optimumOxygen != null and optimumOxygen != ''">optimum_oxygen = #{optimumOxygen},</if>
+            <if test="optimumPh != null and optimumPh != ''">optimum_ph = #{optimumPh},</if>
+            <if test="name != null and name != ''">name = #{name,jdbcType=VARCHAR},</if>
+            <if test="remark != null and remark != ''">remark = #{remark,jdbcType=VARCHAR},</if>
+            <if test="updateId != null and updateId != ''">update_id = #{updateId,jdbcType=NUMERIC},update_time=now()</if>
+        </trim>
+        WHERE
+        id=#{id,jdbcType=NUMERIC}
+    </sql>
+
+    <!--保存对象-->
+    <insert id="save" parameterType="com.zz.entity.Fish" useGeneratedKeys="true"
+            keyProperty="id">
+        INSERT INTO t_fish
+        <include refid="saveModel"/>
+    </insert>
+
+    <update id="delById" parameterType="java.lang.Long">
+        update t_fish
+        <include refid="delByIdModel"/>
+    </update>
+
+    <!--按照ID修改-->
+    <update id="modify" parameterType="com.zz.entity.Fish">
+        UPDATE t_fish
+        <include refid="modifyModel"/>
+    </update>
+
+    <select id="get" parameterType="java.lang.Long" resultMap="BaseResultMap">
+        select
+        <include refid="showColumn"/>
+        from
+        t_fish tf
+        LEFT JOIN t_user tu ON tu.id = tf.create_id
+        LEFT JOIN t_user tu2 ON tu2.id = tf.update_id
+        where
+        tf.id = #{id}
+        and tf.deleted = true
+    </select>
+
+    <select id="findBy" parameterType="com.zz.entity.Fish" resultMap="BaseResultMap">
+        SELECT
+        <include refid="showColumn"/>
+        FROM
+        t_fish tf
+        LEFT JOIN t_user tu ON tu.id = tf.create_id
+        LEFT JOIN t_user tu2 ON tu2.id = tf.update_id
+        WHERE
+        <include refid="where"/>
+    </select>
+</mapper>

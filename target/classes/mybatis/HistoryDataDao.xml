@@ -1,0 +1,198 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.zz.dao.HistoryDataDao" >
+    <resultMap id="BaseResultMap" type="com.zz.entity.HistoryData">
+        <id column="id" property="id" jdbcType="BIGINT"/>
+        <result column="pond_id" property="pondId" jdbcType="BIGINT"/>
+        <result column="temperature" property="temperature" jdbcType="FLOAT"/>
+        <result column="oxygen" property="oxygen" jdbcType="FLOAT"/>
+        <result column="ph" property="ph" jdbcType="FLOAT"/>
+        <result column="record_time" property="recordTime" jdbcType="TIMESTAMP"/>
+        <result column="remark" property="remark" jdbcType="VARCHAR"/>
+        <result column="update_id" property="updateId" jdbcType="BIGINT"/>
+        <result column="create_id" property="createId" jdbcType="BIGINT"/>
+        <result column="update_time" property="updateTime" jdbcType="TIMESTAMP"/>
+        <result column="create_time" property="createTime" jdbcType="TIMESTAMP"/>
+        <result column="deleted" property="deleted" jdbcType="BOOLEAN"/>
+    </resultMap>
+    
+    <sql id="showColumn">
+        <trim prefix="" suffix="" suffixOverrides=",">
+            thd.id,
+            thd.pond_id,
+            thd.temperature,
+            thd.oxygen,
+            thd.ph,
+            thd.record_time,
+            thd.remark,
+            thd.update_id,
+            thd.create_id,
+            thd.update_time,
+            thd.create_time,
+            thd.deleted,
+            tu.name as updateUsername,
+        </trim>
+    </sql>
+
+    <sql id="where">
+        1=1
+        <if test="id != null and id != ''">AND id = #{id,jdbcType=BIGINT}</if>
+        <if test="pondId != null and pondId != ''">AND pond_id = #{pondId}</if>
+        <if test="temperature != null and temperature != ''">AND temperature = #{temperature}</if>
+        <if test="oxygen != null and oxygen != ''">AND oxygen = #{oxygen}</if>
+        <if test="ph != null and ph != ''">AND ph = #{ph}</if>
+        <if test="recordTime != null and recordTime != ''">AND record_time = #{recordTime}</if>
+        <if test="remark != null and remark != ''">AND remark = #{remark,jdbcType=VARCHAR}</if>
+        AND thd.deleted = true
+    </sql>
+
+    <!--插入公用模板-->
+    <sql id="saveModel">
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="pondId != null and pondId != ''">pond_id,</if>
+            <if test="temperature != null and temperature != ''">temperature,</if>
+            <if test="oxygen != null and oxygen != ''">oxygen,</if>
+            <if test="ph != null and ph != ''">ph,</if>
+            <if test="recordTime != null and recordTime != ''">record_time,</if>
+            <if test="remark != null and remark != ''">remark,</if>
+            <if test="createId != null and createId != ''">create_id,create_time,</if>
+            deleted
+        </trim>
+        <trim prefix=" values (" suffix=")" suffixOverrides=",">
+            <if test="pondId != null and pondId != ''">#{pondId},</if>
+            <if test="temperature != null and temperature != ''">#{temperature},</if>
+            <if test="oxygen != null and oxygen != ''">#{oxygen},</if>
+            <if test="ph != null and ph != ''">#{ph},</if>
+            <if test="recordTime != null and recordTime != ''">now(),</if>
+            <if test="remark != null and remark != ''">#{remark,jdbcType=VARCHAR},</if>
+            <if test="createId != null and createId != ''">#{createId,jdbcType=NUMERIC},now(),</if>
+            true
+        </trim>
+    </sql>
+
+    <!--删除公用模板-->
+    <sql id="delByIdModel">
+        <trim prefix=" set" suffix="  " suffixOverrides=",">
+            update_time=now(),deleted=false,
+        </trim>
+        WHERE
+        id=#{id,jdbcType=NUMERIC}
+    </sql>
+
+    <!--修改公用模板-->
+    <sql id="modifyModel">
+        <trim prefix=" set" suffix="  " suffixOverrides=",">
+            <if test="remark != null and remark != ''">remark = #{remark,jdbcType=VARCHAR},</if>
+            <if test="updateId != null and updateId != ''">update_id = #{updateId,jdbcType=NUMERIC},update_time=now()</if>
+        </trim>
+        WHERE
+        id=#{id,jdbcType=NUMERIC}
+    </sql>
+
+    <!--保存对象-->
+    <insert id="save" parameterType="com.zz.entity.HistoryData" useGeneratedKeys="true"
+            keyProperty="id">
+        INSERT INTO t_history_data
+        <include refid="saveModel"/>
+    </insert>
+
+    <update id="delById" parameterType="java.lang.Long">
+        update t_history_data
+        <include refid="delByIdModel"/>
+    </update>
+
+    <!--按照ID修改-->
+    <update id="modify" parameterType="com.zz.entity.HistoryData">
+        UPDATE t_history_data
+        <include refid="modifyModel"/>
+    </update>
+
+    <select id="get" parameterType="java.lang.Long" resultMap="BaseResultMap">
+        select
+        <include refid="showColumn"/>
+        from
+        t_history_data thd
+        LEFT JOIN t_user tu ON tu.id = thd.update_id
+        where
+        thd.id = #{id}
+        and thd.deleted = true
+    </select>
+
+    <select id="findBy" parameterType="com.zz.entity.HistoryData" resultMap="BaseResultMap">
+        SELECT
+        <include refid="showColumn"/>
+        FROM
+        t_history_data thd
+        LEFT JOIN t_user tu ON tu.id = thd.update_id
+        WHERE
+        <include refid="where"/>
+    </select>
+
+    <select id="getCurrentData" parameterType="java.lang.Long" resultMap="BaseResultMap">
+        select
+        <include refid="showColumn"/>
+        from
+        t_history_data thd
+        LEFT JOIN t_user tu ON tu.id = thd.update_id
+        where
+        thd.pond_id = #{pondId}
+        and thd.deleted = true
+        order by record_time
+	    desc
+	    limit 1
+    </select>
+
+    <select id="getPreviousData" parameterType="java.lang.Long" resultMap="BaseResultMap">
+        select * from
+        (select
+        temperature,
+        oxygen,
+        ph,
+        record_time
+        from
+        t_history_data thd
+        where
+        thd.pond_id = 1
+        and deleted = true
+        order by record_time
+        desc
+        limit 10) as result
+        order by result.record_time asc
+    </select>
+
+    <select id="getAllData" parameterType="java.lang.Long" resultMap="BaseResultMap">
+        select
+        <include refid="showColumn"/>
+        from
+        t_history_data thd
+        LEFT JOIN t_user tu ON tu.id = thd.update_id
+        where
+        thd.pond_id = #{pondId}
+        and thd.deleted = true
+        order by record_time
+        desc
+    </select>
+
+    <insert id="insertBatch" parameterType="java.util.List">
+        INSERT INTO t_history_data
+        (
+        pond_id,
+        temperature,
+        oxygen,
+        ph,
+        record_time,
+        deleted
+        )
+        VALUES
+        <foreach collection="list" item="item" index="index" separator=",">
+            (
+            #{item.pondId},
+            #{item.temperature},
+            #{item.oxygen},
+            #{item.ph},
+            now(),
+            true
+            )
+        </foreach>
+    </insert>
+</mapper>
